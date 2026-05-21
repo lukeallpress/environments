@@ -225,3 +225,25 @@ begin
     $f$, t);
   end loop;
 end $$;
+
+-- ---------- table-level grants --------------------------------------------
+-- RLS policies only filter rows; the role still needs table-level GRANTs
+-- to access the table at all. Without these, every authenticated query
+-- fails with "permission denied" before RLS gets a chance to run.
+
+do $$
+declare t text;
+begin
+  foreach t in array array[
+    'staff_allowlist','organizations','contacts','event_series','events',
+    'event_attendance','interactions','tags','tag_links','audit_log',
+    'engagement_weights'
+  ] loop
+    execute format(
+      'grant select, insert, update, delete on %I to authenticated;', t
+    );
+  end loop;
+end $$;
+
+grant usage, select on all sequences in schema public to authenticated;
+grant execute on function is_staff() to authenticated;
