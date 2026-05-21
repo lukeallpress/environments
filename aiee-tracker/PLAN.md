@@ -2,7 +2,7 @@
 
 A web app for the Arizona Institute for Education and the Economy (AIEE) at NAU to track coalition member organizations, contacts, events, attendance, interactions, and engagement trends over time.
 
-**Status**: scoping. No code yet. Pending the engagement-theory doc and confirmation of the items in "Open Questions" below.
+**Status**: scoping. No code yet. Pending confirmation of the items in "Open Questions" below.
 
 ---
 
@@ -67,6 +67,7 @@ Institutional but modern. Generous whitespace on landing/marketing surfaces; den
 - **Auth**: Supabase magic-link email. User enters their NAU email → gets a link → click → in. No passwords.
 - **Allowlist**: app rejects sign-in attempts from emails not on a `staff_allowlist` table that one of you can edit from the admin screen. Prevents drive-by signups.
 - **Audit**: every create/update/delete writes an `audit_log` row (who, when, what changed). Cheap insurance.
+- **Confirmed**: only AIEE staff log in. Coalition members and contacts are records in the DB, not users of the app.
 
 ---
 
@@ -146,13 +147,49 @@ Notable mobile UX details:
 
 ---
 
-## 7. Engagement scoring — **PLACEHOLDER** ⚠
+## 7. Engagement scoring — proposed default
 
-Pending your engagement-theory doc. Until then, working assumption:
+No formal theory doc exists, so here's a sensible first pass. All weights are stored as editable config rows in the DB (tunable from the admin screen — no code change needed to adjust).
 
-> Engagement score per org per quarter = weighted sum of (events attended × event weight) + (interactions × channel weight) + (active contacts × small constant). Time-decayed.
+### Per-action point values
 
-This will be a Postgres view or materialized view, recomputable on demand. Final formula goes here once the doc lands.
+**Interactions** (a logged touchpoint):
+| Channel | Points |
+|---|---|
+| In-person meeting | 5 |
+| Video call | 3 |
+| Phone call | 2 |
+| Email exchange | 1 |
+| Text / quick touch | 0.5 |
+
+**Event attendance**:
+| Outcome | Points |
+|---|---|
+| Multi-day convening, attended | 10 |
+| Half-day+ in-person event, attended | 5 |
+| Virtual event, attended | 3 |
+| Invited, no-show | −1 |
+| Invited, declined in advance | 0 |
+
+### Time decay
+Exponential, **6-month half-life**. Activity in the last 30 days counts at ~1.0, six months ago at ~0.5, a year ago at ~0.25. Keeps "recent engagement" front-and-center without throwing away history.
+
+### Aggregation
+- **Per contact**: sum of own actions, time-decayed.
+- **Per org**: sum across all active contacts at the org, time-decayed.
+
+### What we surface (not just a number)
+- **Score on org/contact card** — current decayed total.
+- **90-day delta** — arrow up/down vs. the prior 90 days.
+- **"Cooling" list** on dashboard — orgs whose 90-day score is <50% of the prior 90-day score. These are your "reach out before they go cold" prompts.
+- **"Warming" list** — opposite. Useful for spotting which orgs to deepen.
+- **Trend chart** — per-org line chart of monthly engagement points over time.
+
+### Implementation
+- Materialized view refreshed nightly (and on-demand via a "Recompute" button on the admin screen).
+- Cheap at this scale (≤50 orgs, low thousands of records). Can move to incremental computation later if needed.
+
+If you want different weights, or want to fold in something I'm missing (e.g., a manual "relationship strength" rating set by staff), say so and I'll adjust.
 
 ---
 
@@ -195,18 +232,58 @@ Each phase is independently shippable.
 
 ## 9. Open questions / blockers
 
-1. **Engagement-theory doc** — needed for Phase 4 (not blocking Phase 0–3).
-2. **Official NAU/AIEE brand colors & logo file** — proposed hex values above are best-guesses; want to confirm against the brand guide. A vector logo file (SVG/PDF) would let me put it in the app header.
-3. **GitHub repo** — when you create `lukeallpress/aiee-tracker`, I'll move the scaffold there. Until then it lives in `aiee-tracker/` on the `claude/mobile-engagement-tracker-LEks8` branch of `lukeallpress/environments`.
-4. **Vercel + Supabase accounts** — you'll need to create these (free) under `lallpress@aguafria.org` and add me as a collaborator when we get to Phase 0 deploy.
-5. **Confirm**: only AIEE staff log in. Coalition members/contacts are records, not users. (Stated, just want to lock it in.)
+1. **Engagement scoring** — confirm the proposed weights/decay in §7, or push back. Not blocking earlier phases.
+2. **Official NAU/AIEE brand colors & logo file** — proposed hex values in §3 are best-guesses; want to confirm against the brand guide. A vector logo file (SVG/PDF) would let me put it in the app header.
+3. **Code sync workflow** — scaffold lives in `aiee-tracker/` on this branch; will be copied into `lukeallpress/aiee-tracker` for deploy. See §11.
 
 ---
 
-## 10. Open items the friend asked about that we should remember
+## 10. Original request — coverage check
 
-From the original request:
-- "track attendance at events, engagement, add notes if we have memorable conversations" → covered (events, attendance, interactions).
+From the friend's original request:
+- "track attendance at events, engagement, add notes if we have memorable conversations" → events, attendance, interactions.
 - "usual database tags like district, county, role" → org has district/county columns; role_tags on contacts; freeform tag system on top.
-- "understand trends of engagement over time" → Phase 4.
-- "this would probably be something we start seriously thinking about this summer" → Phase 0–2 are a few days of work each; can be live before summer's out.
+- "understand trends of engagement over time" → Phase 4 with the scoring model in §7.
+- "this would probably be something we start seriously thinking about this summer" → Phase 0–2 are a few days of work each; live before summer's out.
+
+---
+
+## 11. Code, deploy, and access workflow
+
+### Where code lives
+- **Scoping & dev**: `aiee-tracker/` subfolder on `claude/mobile-engagement-tracker-LEks8` branch of `lukeallpress/environments` (this repo — the only one I can push to from this sandbox).
+- **Production repo**: `lukeallpress/aiee-tracker` (you've created it). Vercel deploys from here.
+
+### One-time sync from scoping repo → production repo
+From your local machine:
+```bash
+git clone git@github.com:lukeallpress/aiee-tracker.git
+cd aiee-tracker
+# pull the scaffold from the environments repo
+git remote add scaffold https://github.com/lukeallpress/environments.git
+git fetch scaffold claude/mobile-engagement-tracker-LEks8
+git checkout scaffold/claude/mobile-engagement-tracker-LEks8 -- aiee-tracker/
+# flatten the subfolder into the repo root
+mv aiee-tracker/* aiee-tracker/.* . 2>/dev/null || true
+rmdir aiee-tracker
+git add -A && git commit -m "Initial scaffold"
+git push origin main
+git remote remove scaffold
+```
+
+After this initial sync, ongoing changes either (a) keep happening here and you pull deltas across, or (b) once you grant me access to the real repo, I work there directly.
+
+### Why you don't actually need to "add me" to Vercel / Supabase
+For the workflow below, I never log into either service. You stay in control.
+
+- **Vercel**: you connect the Vercel project to the GitHub `aiee-tracker` repo (one-click in Vercel UI). Every push to `main` auto-deploys. No CLI auth needed for me.
+- **Supabase**: I write SQL migrations into the repo at `supabase/migrations/*.sql`. You apply them by running `supabase db push` from your local machine (after `supabase login` + `supabase link --project-ref <ref>`), or by pasting the SQL into the Supabase SQL editor. Same for seed data.
+- **Env vars** (Supabase URL, anon key, service role key): you paste them into `.env.local` on your machine and into Vercel's project settings. They never need to enter this sandbox.
+
+### If you'd rather give me direct access
+Options, in order of how much I'd recommend them:
+1. **Don't.** The above workflow is fine and keeps all secrets on your side. Recommended.
+2. Add me as a collaborator on the GitHub `aiee-tracker` repo — but my MCP tools are scoped to `lukeallpress/environments`, so this only helps if you also grant a deploy/PAT path, which I'd discourage in a sandbox like this.
+3. Drop a Supabase service-role key into this session if you want me to run migrations live for testing. **Strongly discourage** — it'd be exposed in conversation history, and the container is ephemeral anyway. Apply migrations yourself instead.
+
+TL;DR: you do the auth dances, I write the code and migrations.
