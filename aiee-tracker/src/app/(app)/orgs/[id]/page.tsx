@@ -57,9 +57,12 @@ export default async function OrgDetailPage({
       <PageHeader
         title={o.name}
         subtitle={
-          <span className="inline-flex items-center gap-2 text-sm">
+          <span className="inline-flex flex-wrap items-center gap-2 text-sm">
             <StatusBadge status={o.status} />
             {o.type && <Badge>{o.type}</Badge>}
+            {o.tags?.map((t) => (
+              <Badge key={t} tone="accent">{t}</Badge>
+            ))}
           </span>
         }
         actions={

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { LinkButton } from "@/components/ui/button";
 import { Card, EmptyState, PageHeader } from "@/components/ui/page-header";
-import { StatusBadge } from "@/components/ui/badge";
+import { Badge, StatusBadge } from "@/components/ui/badge";
 import type { Organization } from "@/lib/db/types";
 
 export const metadata = { title: "Organizations · AIEE Coalition Tracker" };
@@ -17,7 +17,7 @@ export default async function OrgsPage({
 
   let query = supabase
     .from("organizations")
-    .select("id, name, type, district, county, status, updated_at")
+    .select("id, name, type, district, county, status, tags, updated_at")
     .order("name", { ascending: true });
 
   if (q && q.trim()) {
@@ -59,7 +59,7 @@ export default async function OrgsPage({
       )}
 
       {!error && orgs && orgs.length > 0 && (
-        <OrgsTable orgs={orgs as Pick<Organization, "id" | "name" | "type" | "district" | "county" | "status" | "updated_at">[]} />
+        <OrgsTable orgs={orgs as Pick<Organization, "id" | "name" | "type" | "district" | "county" | "status" | "tags" | "updated_at">[]} />
       )}
     </div>
   );
@@ -88,7 +88,7 @@ function SearchBar({ initial }: { initial: string }) {
 function OrgsTable({
   orgs,
 }: {
-  orgs: Pick<Organization, "id" | "name" | "type" | "district" | "county" | "status" | "updated_at">[];
+  orgs: Pick<Organization, "id" | "name" | "type" | "district" | "county" | "status" | "tags" | "updated_at">[];
 }) {
   return (
     <Card>
@@ -117,6 +117,13 @@ function OrgsTable({
                   >
                     {o.name}
                   </Link>
+                  {o.tags?.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {o.tags.map((t) => (
+                        <Badge key={t} tone="accent">{t}</Badge>
+                      ))}
+                    </div>
+                  )}
                 </td>
                 <td className="px-4 py-3 text-ink-muted">{o.type ?? "—"}</td>
                 <td className="px-4 py-3 text-ink-muted">{o.district ?? "—"}</td>

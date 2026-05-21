@@ -79,6 +79,18 @@ export function OrgForm({ action, initial = {}, cancelHref, submitLabel }: Props
         </Field>
       </div>
 
+      <Field
+        label="Tags / affiliations"
+        htmlFor="tags"
+        hint='Comma-separated. e.g. "az-ai-alliance, steering-committee"'
+      >
+        <Input
+          id="tags"
+          name="tags"
+          defaultValue={(initial.tags ?? []).join(", ")}
+        />
+      </Field>
+
       <Field label="Website" htmlFor="website" error={state.fieldErrors?.website}>
         <Input
           id="website"

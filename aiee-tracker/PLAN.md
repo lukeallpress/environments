@@ -122,6 +122,18 @@ Engagement trends are SQL views on top of `event_attendance` + `interactions`, g
 ### Why no shared "person" table
 You explicitly chose strict org-scoped contacts. The cost: cross-career queries ("show me Jane's full history") aren't possible. The benefit: simpler model, no contact-deduplication problem, no "is Jane@OrgA the same Jane as Jane@OrgB?" UX. Recorded so the trade-off isn't forgotten.
 
+### Pattern: people who leave an org but stay engaged
+Strict org-scoping means we don't move a contact from Org A to Org B. The supported pattern when someone leaves their org but stays connected to the work:
+
+1. **Mark the old contact `inactive`** at their previous org. Don't delete — keeps the history of who they were when they attended past events / had past interactions.
+2. **Create a new "org" record for their new context.** For independent consultants this is usually their own consulting practice (e.g., "Jane Smith Consulting") with type=`other` or `industry`. For someone who just retired and is still informally involved, you could make an org called "Independent / Retired" and add multiple such contacts under it.
+3. **Create a new contact record under the new org** — fresh email/title/role tags reflecting their current capacity.
+
+Engagement scores then attach to whichever record is active at the time of an event or interaction. Past activity stays with the old (inactive) record.
+
+### Pattern: affiliations across orgs (e.g. "AZ AI Alliance")
+Use the `tags` column on `organizations` to flag which coalitions / alliances each org belongs to (e.g. `az-ai-alliance`, `arsa`, `aef`). On the contact side, use `role_tags` to flag which contact is the org's designated rep for that affiliation (e.g. `alliance-contact`, `superintendent`). Both are just `text[]` arrays — easy to filter on later when we add advanced search.
+
 ---
 
 ## 6. Screens (responsive, mobile-first)

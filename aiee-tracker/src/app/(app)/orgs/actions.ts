@@ -6,6 +6,7 @@ import {
   fieldError,
   generalError,
   getCurrentUserOrRedirect,
+  parseTags,
   str,
 } from "@/lib/db/actions-helpers";
 import type { FormState } from "@/lib/db/types";
@@ -29,6 +30,7 @@ export async function createOrganization(
       address: str(formData, "address"),
       website: str(formData, "website"),
       status: str(formData, "status") ?? "active",
+      tags: parseTags(str(formData, "tags")),
       notes: str(formData, "notes"),
       created_by: user.id,
     })
@@ -61,6 +63,7 @@ export async function updateOrganization(
       address: str(formData, "address"),
       website: str(formData, "website"),
       status: str(formData, "status") ?? "active",
+      tags: parseTags(str(formData, "tags")),
       notes: str(formData, "notes"),
     })
     .eq("id", id);

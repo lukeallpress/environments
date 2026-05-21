@@ -13,6 +13,7 @@ export type Organization = {
   address: string | null;
   website: string | null;
   status: OrgStatus;
+  tags: string[];
   notes: string | null;
   created_at: string;
   updated_at: string;
