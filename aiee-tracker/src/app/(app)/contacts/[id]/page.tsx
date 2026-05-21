@@ -5,6 +5,7 @@ import { Badge, StatusBadge } from "@/components/ui/badge";
 import { Card, PageHeader } from "@/components/ui/page-header";
 import { LinkButton } from "@/components/ui/button";
 import { DeleteContactButton } from "./delete-contact-button";
+import { InteractionsTimeline } from "@/components/interactions-timeline";
 import type { Contact } from "@/lib/db/types";
 
 type ContactWithOrg = Contact & {
@@ -21,11 +22,20 @@ export default async function ContactDetailPage({
   const { id } = await params;
   const supabase = await createClient();
 
-  const { data, error } = await supabase
-    .from("contacts")
-    .select("*, organizations:org_id ( id, name )")
-    .eq("id", id)
-    .maybeSingle();
+  const [{ data, error }, { data: interactions }] = await Promise.all([
+    supabase
+      .from("contacts")
+      .select("*, organizations:org_id ( id, name )")
+      .eq("id", id)
+      .maybeSingle(),
+    supabase
+      .from("interactions")
+      .select("id, occurred_at, channel, summary, follow_up_at")
+      .eq("target_type", "contact")
+      .eq("target_id", id)
+      .order("occurred_at", { ascending: false })
+      .limit(10),
+  ]);
 
   if (error) {
     return (
@@ -108,9 +118,27 @@ export default async function ContactDetailPage({
           />
         </dl>
       </Card>
+
+      <Card className="p-5">
+        <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+          <h2 className="text-lg section-rule inline-block">Interactions</h2>
+          <LinkButton size="sm" href={`/interactions/new?contact_id=${c.id}`}>
+            + Log interaction
+          </LinkButton>
+        </div>
+        <InteractionsTimeline rows={(interactions ?? []) as InteractionRow[]} />
+      </Card>
     </div>
   );
 }
+
+type InteractionRow = {
+  id: string;
+  occurred_at: string;
+  channel: import("@/lib/db/types").InteractionChannel;
+  summary: string;
+  follow_up_at: string | null;
+};
 
 function Field({ label, value }: { label: string; value: React.ReactNode }) {
   return (

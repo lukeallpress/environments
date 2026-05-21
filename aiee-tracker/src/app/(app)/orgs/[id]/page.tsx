@@ -5,6 +5,7 @@ import { Card, EmptyState, PageHeader } from "@/components/ui/page-header";
 import { Badge, StatusBadge } from "@/components/ui/badge";
 import { LinkButton } from "@/components/ui/button";
 import { DeleteOrgButton } from "./delete-org-button";
+import { InteractionsTimeline } from "@/components/interactions-timeline";
 import type { Contact, Organization } from "@/lib/db/types";
 
 export const metadata = { title: "Organization · AIEE Coalition Tracker" };
@@ -17,13 +18,24 @@ export default async function OrgDetailPage({
   const { id } = await params;
   const supabase = await createClient();
 
-  const [{ data: org, error: orgError }, { data: contacts }] = await Promise.all([
+  const [
+    { data: org, error: orgError },
+    { data: contacts },
+    { data: interactions },
+  ] = await Promise.all([
     supabase.from("organizations").select("*").eq("id", id).maybeSingle(),
     supabase
       .from("contacts")
       .select("id, first_name, last_name, title, email, status, role_tags")
       .eq("org_id", id)
       .order("last_name", { ascending: true }),
+    supabase
+      .from("interactions")
+      .select("id, occurred_at, channel, summary, follow_up_at")
+      .eq("target_type", "org")
+      .eq("target_id", id)
+      .order("occurred_at", { ascending: false })
+      .limit(10),
   ]);
 
   if (orgError) {
@@ -138,9 +150,27 @@ export default async function OrgDetailPage({
           )}
         </Card>
       </div>
+
+      <Card className="p-5">
+        <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+          <h2 className="text-lg section-rule inline-block">Interactions</h2>
+          <LinkButton size="sm" href={`/interactions/new?org_id=${o.id}`}>
+            + Log interaction
+          </LinkButton>
+        </div>
+        <InteractionsTimeline rows={(interactions ?? []) as InteractionRow[]} />
+      </Card>
     </div>
   );
 }
+
+type InteractionRow = {
+  id: string;
+  occurred_at: string;
+  channel: import("@/lib/db/types").InteractionChannel;
+  summary: string;
+  follow_up_at: string | null;
+};
 
 function Field({ label, value }: { label: string; value: React.ReactNode }) {
   return (

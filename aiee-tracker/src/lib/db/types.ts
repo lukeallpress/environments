@@ -133,3 +133,39 @@ export const SERIES_CADENCES = [
   "annual",
   "other",
 ] as const;
+
+// ---------- Phase 3: interactions ----------------------------------------
+
+export type InteractionTargetType = "org" | "contact";
+export type InteractionChannel =
+  | "in-person"
+  | "video"
+  | "phone"
+  | "email"
+  | "text"
+  | "other";
+
+export type Interaction = {
+  id: string;
+  target_type: InteractionTargetType;
+  target_id: string;
+  occurred_at: string;
+  channel: InteractionChannel;
+  summary: string;
+  follow_up_at: string | null;
+  authored_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export const INTERACTION_CHANNELS: {
+  value: InteractionChannel;
+  label: string;
+}[] = [
+  { value: "in-person", label: "In-person meeting" },
+  { value: "video", label: "Video call" },
+  { value: "phone", label: "Phone call" },
+  { value: "email", label: "Email" },
+  { value: "text", label: "Text / quick touch" },
+  { value: "other", label: "Other" },
+];

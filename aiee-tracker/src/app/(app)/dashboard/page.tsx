@@ -9,22 +9,34 @@ export const metadata = { title: "Dashboard · AIEE Coalition Tracker" };
 
 export default async function DashboardPage() {
   const supabase = await createClient();
-  const nowIso = new Date().toISOString();
+  const now = new Date();
+  const nowIso = now.toISOString();
+  const oneWeekAhead = new Date(now);
+  oneWeekAhead.setDate(oneWeekAhead.getDate() + 7);
+  const oneWeekIso = oneWeekAhead.toISOString();
 
-  const [orgsRes, contactsRes, upcomingRes, nextEventsRes] = await Promise.all([
-    supabase.from("organizations").select("*", { count: "exact", head: true }),
-    supabase.from("contacts").select("*", { count: "exact", head: true }),
-    supabase
-      .from("events")
-      .select("*", { count: "exact", head: true })
-      .gte("starts_at", nowIso),
-    supabase
-      .from("events")
-      .select("id, name, starts_at, ends_at, location, event_series:series_id ( id, name )")
-      .gte("starts_at", nowIso)
-      .order("starts_at", { ascending: true })
-      .limit(5),
-  ]);
+  const [orgsRes, contactsRes, upcomingRes, nextEventsRes, followUpsRes] =
+    await Promise.all([
+      supabase.from("organizations").select("*", { count: "exact", head: true }),
+      supabase.from("contacts").select("*", { count: "exact", head: true }),
+      supabase
+        .from("events")
+        .select("*", { count: "exact", head: true })
+        .gte("starts_at", nowIso),
+      supabase
+        .from("events")
+        .select("id, name, starts_at, ends_at, location, event_series:series_id ( id, name )")
+        .gte("starts_at", nowIso)
+        .order("starts_at", { ascending: true })
+        .limit(5),
+      supabase
+        .from("interactions")
+        .select("id, target_type, target_id, follow_up_at, summary, channel")
+        .not("follow_up_at", "is", null)
+        .lte("follow_up_at", oneWeekIso)
+        .order("follow_up_at", { ascending: true })
+        .limit(10),
+    ]);
 
   type UpcomingRow = {
     id: string;
@@ -35,6 +47,39 @@ export default async function DashboardPage() {
     event_series: { id: string; name: string } | null;
   };
   const nextEvents = (nextEventsRes.data ?? []) as unknown as UpcomingRow[];
+
+  type FollowUpRow = {
+    id: string;
+    target_type: "org" | "contact";
+    target_id: string;
+    follow_up_at: string;
+    summary: string;
+    channel: string;
+  };
+  const followUps = (followUpsRes.data ?? []) as FollowUpRow[];
+
+  // Resolve target names for follow-ups in one batch each.
+  const followOrgIds = followUps.filter((f) => f.target_type === "org").map((f) => f.target_id);
+  const followContactIds = followUps
+    .filter((f) => f.target_type === "contact")
+    .map((f) => f.target_id);
+  const [followOrgsRes, followContactsRes] = await Promise.all([
+    followOrgIds.length
+      ? supabase.from("organizations").select("id, name").in("id", followOrgIds)
+      : Promise.resolve({ data: [] as { id: string; name: string }[] }),
+    followContactIds.length
+      ? supabase
+          .from("contacts")
+          .select("id, first_name, last_name")
+          .in("id", followContactIds)
+      : Promise.resolve({ data: [] as { id: string; first_name: string; last_name: string }[] }),
+  ]);
+  const followOrgNames = new Map(
+    (followOrgsRes.data ?? []).map((o) => [o.id, o.name])
+  );
+  const followContactNames = new Map(
+    (followContactsRes.data ?? []).map((c) => [c.id, `${c.first_name} ${c.last_name}`])
+  );
 
   return (
     <div className="space-y-8">
@@ -92,12 +137,50 @@ export default async function DashboardPage() {
         </Card>
 
         <Card className="lg:col-span-1 p-5">
-          <h2 className="text-lg section-rule inline-block mb-3">What&apos;s next</h2>
-          <ul className="text-sm space-y-2 text-ink-muted list-disc pl-5">
-            <li>Phase 3 — Interactions and the floating quick-add for after-meeting capture.</li>
-            <li>Phase 4 — Engagement scoring, cooling/warming lists, trend charts.</li>
-            <li>Phase 5 — Audit log viewer, tag management, polish.</li>
-          </ul>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg section-rule inline-block">Needs follow-up</h2>
+            <Link
+              href="/interactions"
+              className="text-sm font-medium text-nau-navy hover:underline"
+            >
+              All →
+            </Link>
+          </div>
+          {followUps.length === 0 ? (
+            <p className="text-sm text-ink-muted py-2">
+              No follow-ups in the next 7 days.
+            </p>
+          ) : (
+            <ul className="divide-y divide-border">
+              {followUps.map((f) => {
+                const overdue = new Date(f.follow_up_at) < new Date();
+                const targetName =
+                  f.target_type === "org"
+                    ? followOrgNames.get(f.target_id) ?? "Unknown org"
+                    : followContactNames.get(f.target_id) ?? "Unknown contact";
+                return (
+                  <li key={f.id}>
+                    <Link
+                      href={`/interactions/${f.id}`}
+                      className="block py-3 hover:bg-nau-navy-50/30 -mx-2 px-2 rounded"
+                    >
+                      <p className="text-sm font-medium text-nau-navy truncate">
+                        {targetName}
+                      </p>
+                      <p
+                        className={`text-xs mt-0.5 ${
+                          overdue ? "text-danger font-medium" : "text-ink-muted"
+                        }`}
+                      >
+                        {overdue ? "Overdue — " : ""}
+                        {formatEventWhen(f.follow_up_at)}
+                      </p>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
         </Card>
       </div>
     </div>

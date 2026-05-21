@@ -56,12 +56,16 @@ export function AttendanceSection({
 
   return (
     <Card className="p-5">
-      <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+      <div className="flex items-center justify-between mb-2 flex-wrap gap-3">
         <h2 className="text-lg section-rule inline-block">Attendance</h2>
         <LinkButton size="sm" href={`/events/${eventId}/attendance/add`}>
           + Add attendees
         </LinkButton>
       </div>
+      <p className="text-xs text-ink-muted mb-4">
+        Internal tracking only — no emails are sent. Update statuses as info
+        comes in from your existing outreach channels.
+      </p>
 
       {/* Filter chips — total counts visible in each. */}
       <div className="flex gap-2 mb-4 overflow-x-auto pb-1 -mx-1 px-1">
