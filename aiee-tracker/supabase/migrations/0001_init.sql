@@ -17,16 +17,6 @@ begin
   return new;
 end $$;
 
--- True when the calling user's email is in the staff allowlist.
-create or replace function is_staff() returns boolean
-language sql stable security definer set search_path = public as $$
-  select exists (
-    select 1
-    from staff_allowlist sa
-    where sa.email = lower(coalesce(auth.jwt() ->> 'email', ''))
-  );
-$$;
-
 -- ---------- core tables ----------------------------------------------------
 
 create table staff_allowlist (
@@ -190,6 +180,19 @@ begin
     );
   end loop;
 end $$;
+
+-- ---------- staff check function ------------------------------------------
+-- Defined here, after staff_allowlist exists, because SQL-language function
+-- bodies are validated against the catalog at CREATE time.
+
+create or replace function is_staff() returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (
+    select 1
+    from staff_allowlist sa
+    where sa.email = lower(coalesce(auth.jwt() ->> 'email', ''))
+  );
+$$;
 
 -- ---------- row-level security --------------------------------------------
 
