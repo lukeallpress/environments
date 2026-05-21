@@ -37,7 +37,11 @@ export async function GET(request: NextRequest) {
 
   if (!allowed) {
     await supabase.auth.signOut();
-    return NextResponse.redirect(`${origin}/auth/error?reason=not_allowlisted`);
+    const params = new URLSearchParams({
+      reason: "not_allowlisted",
+      email: user.email,
+    });
+    return NextResponse.redirect(`${origin}/auth/error?${params}`);
   }
 
   return NextResponse.redirect(`${origin}${next}`);

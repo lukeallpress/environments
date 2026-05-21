@@ -10,9 +10,9 @@ const REASONS: Record<string, string> = {
 export default async function AuthErrorPage({
   searchParams,
 }: {
-  searchParams: Promise<{ reason?: string }>;
+  searchParams: Promise<{ reason?: string; email?: string }>;
 }) {
-  const { reason } = await searchParams;
+  const { reason, email } = await searchParams;
   const message =
     (reason && REASONS[reason]) ||
     reason ||
@@ -23,6 +23,11 @@ export default async function AuthErrorPage({
       <div className="w-full max-w-md bg-surface border border-border rounded-xl shadow-sm p-8 text-center">
         <h1 className="text-2xl section-rule mb-6">Sign-in problem</h1>
         <p className="text-ink-muted mb-6">{message}</p>
+        {email && (
+          <p className="text-xs text-ink-muted mb-6 font-mono break-all">
+            Email checked: <span className="font-semibold">{email}</span>
+          </p>
+        )}
         <Link
           href="/login"
           className="inline-block rounded-md bg-nau-navy px-4 py-2.5 text-sm font-medium text-white hover:bg-nau-navy-700"
