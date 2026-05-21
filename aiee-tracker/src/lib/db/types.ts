@@ -61,3 +61,75 @@ export type FormState = {
   error?: string;
   fieldErrors?: Record<string, string>;
 };
+
+// ---------- Phase 2: events & attendance ---------------------------------
+
+export type EventFormat = "in-person" | "virtual" | "hybrid";
+export type AttendanceStatus =
+  | "invited"
+  | "registered"
+  | "attended"
+  | "no-show"
+  | "declined";
+
+export type EventSeries = {
+  id: string;
+  name: string;
+  description: string | null;
+  cadence: string | null;
+  owner_user_id: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type Event = {
+  id: string;
+  series_id: string | null;
+  name: string;
+  starts_at: string;
+  ends_at: string | null;
+  location: string | null;
+  format: EventFormat | null;
+  description: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+  created_by: string | null;
+};
+
+export type EventAttendance = {
+  event_id: string;
+  contact_id: string;
+  status: AttendanceStatus;
+  role_at_event: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+  recorded_by: string | null;
+};
+
+export const EVENT_FORMATS: { value: EventFormat; label: string }[] = [
+  { value: "in-person", label: "In person" },
+  { value: "virtual", label: "Virtual" },
+  { value: "hybrid", label: "Hybrid" },
+];
+
+export const ATTENDANCE_STATUSES: {
+  value: AttendanceStatus;
+  label: string;
+  short: string;
+}[] = [
+  { value: "invited", label: "Invited", short: "Inv" },
+  { value: "registered", label: "Registered", short: "Reg" },
+  { value: "attended", label: "Attended", short: "Att" },
+  { value: "no-show", label: "No-show", short: "NS" },
+  { value: "declined", label: "Declined", short: "Dec" },
+];
+
+export const SERIES_CADENCES = [
+  "one-off",
+  "monthly",
+  "quarterly",
+  "annual",
+  "other",
+] as const;
