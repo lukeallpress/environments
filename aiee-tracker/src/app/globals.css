@@ -1,0 +1,64 @@
+@import "tailwindcss";
+
+/* AIEE Coalition Tracker — visual tokens.
+   Colors are best-guess matches to NAU/AIEE branding; confirm against
+   the official NAU brand guide and tune before launch. */
+:root {
+  --nau-navy: #002e5d;
+  --nau-navy-700: #03407c;
+  --nau-navy-50: #e7eef6;
+  --nau-gold: #ffc72c;
+  --nau-gold-600: #e0a900;
+  --accent-cyan: #4fb4e5;
+
+  --ink: #0f172a;
+  --ink-muted: #475569;
+  --surface: #ffffff;
+  --surface-muted: #f4f6fb;
+  --border: #e2e8f0;
+  --danger: #b91c1c;
+  --success: #15803d;
+
+  --background: var(--surface-muted);
+  --foreground: var(--ink);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-nau-navy: var(--nau-navy);
+  --color-nau-navy-700: var(--nau-navy-700);
+  --color-nau-navy-50: var(--nau-navy-50);
+  --color-nau-gold: var(--nau-gold);
+  --color-nau-gold-600: var(--nau-gold-600);
+  --color-accent-cyan: var(--accent-cyan);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-border: var(--border);
+  --color-danger: var(--danger);
+  --color-success: var(--success);
+
+  --font-sans: var(--font-inter);
+  --font-serif: var(--font-source-serif);
+}
+
+html,
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+/* Headings default to the serif display face — matches the AIEE doc cover. */
+h1, h2, h3 {
+  font-family: var(--font-serif), Georgia, serif;
+  color: var(--nau-navy);
+}
+
+/* Gold underline accent under section heads (matches the doc's title rule). */
+.section-rule {
+  border-bottom: 3px solid var(--nau-gold);
+  padding-bottom: 0.25rem;
+}
