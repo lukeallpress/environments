@@ -40,3 +40,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Proposals, contracts, and other private business docs — never commit these.
+# Keep them on your Mac (or in a separate private repo).
+docs/aiee-phase-*-proposal.*
+docs/*-contract.*
+docs/*-invoice.*
+docs/private/
